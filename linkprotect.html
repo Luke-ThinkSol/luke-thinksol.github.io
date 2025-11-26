@@ -245,6 +245,9 @@
         <header>
             <h1>🔓 Barracuda Link Protect Decoder</h1>
             <p>Decode Barracuda Link Protection URLs from zone files and individual links</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.95;">
+                🔒 <strong>Privacy:</strong> All processing happens in your browser. No data is sent to any server.
+            </p>
         </header>
 
         <div class="content">
@@ -320,30 +323,38 @@
 
         function decodeBarracudaLink(url) {
             try {
-                // More robust pattern that handles edge cases
-                const match = url.match(/[?&]a=([^&"'<>\s]+)/);
-                if (match) {
-                    const encodedUrl = match[1];
-                    // URL decode it - try double-decode for edge cases
-                    let decoded = decodeURIComponent(encodedUrl);
-                    
-                    // Check if it's still encoded (double-encoded URLs)
-                    if (decoded.includes('%')) {
-                        try {
-                            const doubleDecoded = decodeURIComponent(decoded);
-                            // Only use double-decoded if it's a valid URL
-                            if (doubleDecoded.startsWith('http://') || doubleDecoded.startsWith('https://')) {
-                                decoded = doubleDecoded;
-                            }
-                        } catch (e) {
-                            // Single decode is fine
-                        }
+                // Check if it's a Barracuda link
+                if (!url.includes('linkprotect.cudasvc.com')) {
+                    return null;
+                }
+
+                // Use URL API for robust parameter extraction
+                const parsed = new URL(url);
+                const encodedUrl = parsed.searchParams.get('a');
+                
+                if (!encodedUrl) {
+                    return null;
+                }
+
+                // Decode once
+                let decodedOnce = decodeURIComponent(encodedUrl);
+                
+                // Try double-decode with validation
+                let decodedTwice;
+                try {
+                    decodedTwice = decodeURIComponent(decodedOnce);
+                    // Only use double-decoded if it's a valid URL
+                    if ((decodedTwice.startsWith('http://') || decodedTwice.startsWith('https://')) && 
+                        decodedTwice !== decodedOnce) {
+                        return decodedTwice;
                     }
-                    
-                    // Basic validation - should be a URL
-                    if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
-                        return decoded;
-                    }
+                } catch (e) {
+                    // Double decode failed, stick with single decode
+                }
+                
+                // Validate single decode result
+                if (decodedOnce.startsWith('http://') || decodedOnce.startsWith('https://')) {
+                    return decodedOnce;
                 }
             } catch (err) {
                 console.error('Error decoding Barracuda link:', err);
@@ -391,6 +402,9 @@
                 document.getElementById('filename').textContent = `Selected: ${file.name}`;
                 document.getElementById('filename').style.display = 'block';
                 document.getElementById('decodeFileBtn').disabled = false;
+                
+                // Reset processed content
+                processedFileContent = null;
                 
                 // Hide previous results
                 document.getElementById('fileResult').classList.remove('show');
