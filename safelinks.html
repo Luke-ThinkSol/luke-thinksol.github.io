@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft SafeLinks Decoder</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #0078d4;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 20px;
+            background: white;
+            border: 2px dashed #0078d4;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-label:hover {
+            background: #f8f9fa;
+            border-color: #106ebe;
+        }
+
+        .file-upload-label i {
+            font-size: 2em;
+            color: #0078d4;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 120, 212, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #28a745;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-header h3 {
+            color: #28a745;
+            margin: 0;
+        }
+
+        .copy-btn {
+            padding: 6px 15px;
+            font-size: 14px;
+            background: #28a745;
+        }
+
+        .result-content {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 6px;
+            color: #856404;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .filename {
+            margin-top: 10px;
+            padding: 8px;
+            background: #e7f3ff;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #004085;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0078d4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: #0078d4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔓 Microsoft SafeLinks Decoder</h1>
+            <p>Decode Microsoft 365 SafeLinks URLs to reveal original destinations</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.95;">
+                🔒 <strong>Privacy:</strong> All processing happens in your browser. No data is sent to any server.
+            </p>
+        </header>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>What are SafeLinks?</strong><br>
+                Microsoft SafeLinks rewrites URLs in emails to check for malicious content. URLs start with 
+                <code>https://[region].safelinks.protection.outlook.com</code> and contain the original URL in the <code>url</code> parameter.
+            </div>
+
+            <!-- Single Link Decoder -->
+            <div class="section">
+                <h2>Decode Single Link</h2>
+                <div class="input-group">
+                    <label for="singleLink">Enter a SafeLinks URL:</label>
+                    <input 
+                        type="text" 
+                        id="singleLink" 
+                        placeholder="https://nam01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fexample.com&data=..."
+                    >
+                </div>
+                <button onclick="decodeSingleLink()">Decode Link</button>
+                
+                <div id="singleResult" class="result">
+                    <div class="result-header">
+                        <h3>Decoded URL:</h3>
+                        <button class="copy-btn" onclick="copyToClipboard(event, 'singleResultContent')">Copy</button>
+                    </div>
+                    <div id="singleResultContent" class="result-content"></div>
+                </div>
+                
+                <div id="singleError" class="error"></div>
+            </div>
+
+            <!-- File Upload Decoder -->
+            <div class="section">
+                <h2>Decode File with SafeLinks</h2>
+                <div class="input-group">
+                    <label>Upload a file to decode all SafeLinks URLs:</label>
+                    <div class="file-upload">
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            accept=".txt,.html,.eml"
+                            onchange="handleFileSelect(event)"
+                        >
+                        <label for="fileInput" class="file-upload-label">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📁</div>
+                            <div><strong>Click to select file</strong></div>
+                            <div style="font-size: 0.9em; color: #6c757d; margin-top: 5px;">
+                                Supports .txt, .html, .eml files
+                            </div>
+                        </label>
+                    </div>
+                    <div id="filename" class="filename" style="display: none;"></div>
+                </div>
+                <button id="decodeFileBtn" onclick="decodeFile()" disabled>Decode File</button>
+                <button id="downloadBtn" onclick="downloadFile()" style="display: none; margin-left: 10px; background: #28a745;">Download Decoded File</button>
+                
+                <div id="fileResult" class="result">
+                    <div class="result-header">
+                        <h3>Processing Complete!</h3>
+                    </div>
+                    <div id="fileStats" class="stats"></div>
+                </div>
+                
+                <div id="fileError" class="error"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>This tool processes files entirely in your browser - no data is uploaded to any server.</p>
+            <p style="margin-top: 10px;">Created to decode Microsoft SafeLinks URL protection</p>
+        </footer>
+    </div>
+
+    <script>
+        let processedFileContent = null;
+        let originalFileName = null;
+
+        function decodeSafeLink(url) {
+            try {
+                // Check if it's a SafeLinks URL
+                if (!url.includes('safelinks.protection.outlook.com')) {
+                    return null;
+                }
+
+                // Use URL API for robust parameter extraction
+                const parsed = new URL(url);
+                const encodedUrl = parsed.searchParams.get('url');
+                
+                if (!encodedUrl) {
+                    return null;
+                }
+
+                // Decode once
+                let decodedOnce = decodeURIComponent(encodedUrl);
+                
+                // Try double-decode with validation
+                let decodedTwice;
+                try {
+                    decodedTwice = decodeURIComponent(decodedOnce);
+                    // Only use double-decoded if it's a valid URL and different from single decode
+                    if ((decodedTwice.startsWith('http://') || decodedTwice.startsWith('https://')) && 
+                        decodedTwice !== decodedOnce) {
+                        return decodedTwice;
+                    }
+                } catch (e) {
+                    // Double decode failed, stick with single decode
+                }
+                
+                // Validate single decode result
+                if (decodedOnce.startsWith('http://') || decodedOnce.startsWith('https://')) {
+                    return decodedOnce;
+                }
+            } catch (err) {
+                console.error('Error decoding SafeLinks URL:', err);
+            }
+            return null;
+        }
+
+        function decodeSingleLink() {
+            const input = document.getElementById('singleLink').value.trim();
+            const resultDiv = document.getElementById('singleResult');
+            const resultContent = document.getElementById('singleResultContent');
+            const errorDiv = document.getElementById('singleError');
+
+            // Hide previous results
+            resultDiv.classList.remove('show');
+            errorDiv.classList.remove('show');
+
+            if (!input) {
+                errorDiv.textContent = 'Please enter a URL to decode.';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (!input.includes('safelinks.protection.outlook.com')) {
+                errorDiv.textContent = 'This doesn\'t appear to be a Microsoft SafeLinks URL.';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            const decoded = decodeSafeLink(input);
+            
+            if (decoded) {
+                resultContent.textContent = decoded;
+                resultDiv.classList.add('show');
+            } else {
+                errorDiv.textContent = 'Could not decode this URL. Make sure it contains the "url=" parameter.';
+                errorDiv.classList.add('show');
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                originalFileName = file.name;
+                document.getElementById('filename').textContent = `Selected: ${file.name}`;
+                document.getElementById('filename').style.display = 'block';
+                document.getElementById('decodeFileBtn').disabled = false;
+                
+                // Reset processed content
+                processedFileContent = null;
+                
+                // Hide previous results
+                document.getElementById('fileResult').classList.remove('show');
+                document.getElementById('fileError').classList.remove('show');
+                document.getElementById('downloadBtn').style.display = 'none';
+            }
+        }
+
+        function decodeFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showFileError('Please select a file first.');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                processFileContent(content);
+            };
+            
+            reader.onerror = function() {
+                showFileError('Error reading file. Please try again.');
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function processFileContent(content) {
+            // More robust pattern that handles URLs ending with quotes, brackets, etc.
+            // Matches various regional SafeLinks domains (nam01, eur01, etc.)
+            const pattern = /https?:\/\/[a-z0-9]+\.safelinks\.protection\.outlook\.com\/\?[^"'<>\s]+/gi;
+            const matches = content.match(pattern);
+            let replacedCount = 0;
+            let failedCount = 0;
+
+            if (!matches) {
+                showFileError('No Microsoft SafeLinks URLs found in this file.');
+                return;
+            }
+
+            let processedContent = content;
+            
+            // Process each unique URL to avoid issues with duplicates
+            const uniqueUrls = [...new Set(matches)];
+            
+            uniqueUrls.forEach(url => {
+                try {
+                    const decoded = decodeSafeLink(url);
+                    if (decoded) {
+                        // Use split/join for global replacement of all instances
+                        const occurrences = (processedContent.match(new RegExp(escapeRegExp(url), 'gi')) || []).length;
+                        processedContent = processedContent.split(url).join(decoded);
+                        replacedCount += occurrences;
+                    } else {
+                        failedCount++;
+                    }
+                } catch (err) {
+                    console.error('Error decoding URL:', url, err);
+                    failedCount++;
+                }
+            });
+
+            // Store processed content for download
+            processedFileContent = processedContent;
+
+            // Show results
+            const statsDiv = document.getElementById('fileStats');
+            statsDiv.innerHTML = `
+                <strong>Processing Summary:</strong><br>
+                ✅ Successfully decoded: ${replacedCount} links (${uniqueUrls.length - failedCount} unique URLs)<br>
+                ${failedCount > 0 ? `⚠️ Failed to decode: ${failedCount} unique URLs<br>` : ''}
+                📊 Total links found: ${matches.length}
+            `;
+            
+            document.getElementById('fileResult').classList.add('show');
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+        }
+
+        // Helper function to escape special regex characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function showFileError(message) {
+            const errorDiv = document.getElementById('fileError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function downloadFile() {
+            if (!processedFileContent) {
+                showFileError('No processed content available for download.');
+                return;
+            }
+
+            const blob = new Blob([processedFileContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Create new filename
+            const nameParts = originalFileName.split('.');
+            const extension = nameParts.pop();
+            const baseName = nameParts.join('.');
+            a.download = `${baseName}_decoded.${extension}`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard(evt, elementId) {
+            const content = document.getElementById(elementId).textContent;
+            
+            if (!navigator.clipboard) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const btn = evt.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to copy to clipboard');
+                }
+                document.body.removeChild(textArea);
+                return;
+            }
+            
+            navigator.clipboard.writeText(content).then(() => {
+                // Visual feedback
+                const btn = evt.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        // Allow Enter key to decode single link
+        document.getElementById('singleLink').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                decodeSingleLink();
+            }
+        });
+    </script>
+</body>
+</html>
